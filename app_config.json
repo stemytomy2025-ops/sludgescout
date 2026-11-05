@@ -1,0 +1,204 @@
+{
+  "title": "SludgeScout",
+  "tagline": "Ask questions in plain English about how European countries produce and dispose of sewage sludge. An AI agent chooses the right analysis, runs it on official Eurostat data, and shows exactly how each answer was computed.",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "max_turns": 6,
+  "max_tool_calls": 8,
+  "use_refusal_fallback": true,
+  "is_test_fixture": false,
+  "datasets": [
+    {
+      "id": "eurostat-env-ww-spd",
+      "name": "Eurostat: Sewage sludge production and disposal (env_ww_spd)",
+      "landing_page": "https://ec.europa.eu/eurostat/databrowser/view/env_ww_spd/default/table",
+      "license": "CC BY 4.0 (Eurostat reuse policy)",
+      "attribution": "Eurostat: Sewage sludge production and disposal (env_ww_spd), https://ec.europa.eu/eurostat/databrowser/view/env_ww_spd/default/table (licence: CC BY 4.0 (Eurostat reuse policy))",
+      "source": {
+        "kind": "http_csv",
+        "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/env_ww_spd/?format=SDMX-CSV&compressed=false",
+        "max_mb": 300
+      },
+      "expected_schema": {
+        "ww_tpar": "string",
+        "ww_tp": "string",
+        "unit": "string",
+        "geo": "string",
+        "TIME_PERIOD": "integer",
+        "OBS_VALUE": "float",
+        "OBS_FLAG": "string"
+      },
+      "expected_min_rows": 12929,
+      "limitations": [
+        "Automated inspection: Snapshot inspected 2026-11-05; the source may change after this date.",
+        "Long format: codes need labels (SLD_LAND=landfill, SLD_INCN=incineration, SLD_AGR=agricultural use, SLP=production).",
+        "Country-level annual totals only; no plant-level detail. Coverage varies by country and year (gaps, flags)."
+      ]
+    },
+    {
+      "id": "eurostat-env-ww-con",
+      "name": "Eurostat: Population connected to wastewater treatment (env_ww_con)",
+      "landing_page": "https://ec.europa.eu/eurostat/databrowser/view/env_ww_con/default/table",
+      "license": "CC BY 4.0 (Eurostat reuse policy)",
+      "attribution": "Eurostat: Population connected to wastewater treatment (env_ww_con), https://ec.europa.eu/eurostat/databrowser/view/env_ww_con/default/table (licence: CC BY 4.0 (Eurostat reuse policy))",
+      "source": {
+        "kind": "http_csv",
+        "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/env_ww_con/?format=SDMX-CSV&compressed=false",
+        "max_mb": 300
+      },
+      "expected_schema": {
+        "ww_tp": "string",
+        "unit": "string",
+        "geo": "string",
+        "TIME_PERIOD": "integer",
+        "OBS_VALUE": "float",
+        "OBS_FLAG": "string"
+      },
+      "expected_min_rows": 17181,
+      "limitations": [
+        "Automated inspection: Snapshot inspected 2026-11-05; the source may change after this date.",
+        "Mixes units (PC percentage vs THS thousand persons); tools must filter one unit.",
+        "Country-level annual; reporting gaps for several countries and years."
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "rank_countries_by_sludge",
+      "description": "Rank countries by sludge for ONE disposal route (ww_tpar: SLD_LAND landfill, SLD_INCN incineration, SLD_AGR agricultural use, SLD_COMP compost, SLD_OTH other, SLD total disposed, SLP total produced) and ONE year (TIME_PERIOD). Always filter unit (THS_T thousand tonnes or KG_HAB kg per capita) and ww_tp (URB_TP urban plants).",
+      "operation": "aggregate",
+      "dataset_id": "eurostat-env-ww-spd",
+      "params": {
+        "group": "geo",
+        "metrics": [
+          "OBS_VALUE"
+        ],
+        "filterable": [
+          "ww_tpar",
+          "ww_tp",
+          "unit",
+          "TIME_PERIOD"
+        ],
+        "eval_filters": {
+          "ww_tpar": "SLD_LAND",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        },
+        "eval_question": "Which country landfilled the most urban sewage sludge (thousand tonnes) in 2022?"
+      }
+    },
+    {
+      "name": "sludge_route_by_year",
+      "description": "Yearly sludge values for ONE country (geo) and ONE route (ww_tpar codes as in rank_countries_by_sludge). Always filter unit (THS_T thousand tonnes or KG_HAB kg per capita) and ww_tp (URB_TP urban plants).",
+      "operation": "aggregate",
+      "dataset_id": "eurostat-env-ww-spd",
+      "params": {
+        "group": "TIME_PERIOD",
+        "metrics": [
+          "OBS_VALUE"
+        ],
+        "filterable": [
+          "geo",
+          "ww_tpar",
+          "ww_tp",
+          "unit"
+        ],
+        "eval_filters": {
+          "geo": "PL",
+          "ww_tpar": "SLD_INCN",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T"
+        },
+        "eval_question": "In which year did Poland incinerate the most urban sewage sludge (thousand tonnes)?"
+      }
+    },
+    {
+      "name": "sludge_route_mix",
+      "description": "Compare ww_tpar values within ONE country and ONE year. SLP (produced) and SLD (total disposed) are totals, not routes: report routes against them, never add them to the routes. Always filter unit (THS_T thousand tonnes or KG_HAB kg per capita) and ww_tp (URB_TP urban plants).",
+      "operation": "aggregate",
+      "dataset_id": "eurostat-env-ww-spd",
+      "params": {
+        "group": "ww_tpar",
+        "metrics": [
+          "OBS_VALUE"
+        ],
+        "filterable": [
+          "geo",
+          "ww_tp",
+          "unit",
+          "TIME_PERIOD"
+        ],
+        "eval_filters": {
+          "geo": "PL",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        },
+        "eval_question": "For Poland in 2022, which sludge category has the largest tonnage?"
+      }
+    },
+    {
+      "name": "cite_sludge_rows",
+      "description": "Return the exact Eurostat rows (with OBS_FLAG estimate/break flags) behind a figure, for citation. Filter at least geo and TIME_PERIOD.",
+      "operation": "filter_rows",
+      "dataset_id": "eurostat-env-ww-spd",
+      "params": {
+        "columns": [
+          "geo",
+          "ww_tpar",
+          "ww_tp",
+          "unit",
+          "TIME_PERIOD",
+          "OBS_VALUE",
+          "OBS_FLAG"
+        ],
+        "filterable": [
+          "geo",
+          "ww_tpar",
+          "ww_tp",
+          "unit",
+          "TIME_PERIOD"
+        ],
+        "eval_filters": {
+          "geo": "PL",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        },
+        "eval_question": "How many Eurostat rows describe Poland's urban sludge (thousand tonnes) in 2022?"
+      }
+    },
+    {
+      "name": "treatment_coverage_by_country",
+      "description": "Rank countries by ONE treatment level (ww_tp: URB_OTH_CS_T2 secondary, URB_OTH_CS_T3 tertiary, URB_OTH_CS_NC not connected, TOTAL connected) in ONE year. Always filter unit (PC percent of population or THS thousand persons).",
+      "operation": "aggregate",
+      "dataset_id": "eurostat-env-ww-con",
+      "params": {
+        "group": "geo",
+        "metrics": [
+          "OBS_VALUE"
+        ],
+        "filterable": [
+          "ww_tp",
+          "unit",
+          "TIME_PERIOD"
+        ],
+        "eval_filters": {
+          "ww_tp": "URB_OTH_CS_T3",
+          "unit": "PC",
+          "TIME_PERIOD": 2022
+        },
+        "eval_question": "Which country had the highest share of population on tertiary treatment in 2022?"
+      }
+    }
+  ],
+  "example_questions": [
+    "Which five countries landfilled the most sewage sludge (thousand tonnes) in the latest year with data?",
+    "How has Poland's sludge going to incineration changed since 2010?",
+    "What is the disposal-route mix in Poland in 2022, and which rows is that based on?",
+    "Which countries still have under 70% of the population on secondary treatment?"
+  ],
+  "show_developer_tabs": false,
+  "about_file": "docs/about.md"
+}

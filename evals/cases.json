@@ -1,0 +1,108 @@
+{
+  "cases": [
+    {
+      "id": "rank_countries_by_sludge-top",
+      "question": "Which country landfilled the most urban sewage sludge (thousand tonnes) in 2022?",
+      "tool": "rank_countries_by_sludge",
+      "args": {
+        "metric": "OBS_VALUE",
+        "agg": "mean",
+        "filters": {
+          "ww_tpar": "SLD_LAND",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        }
+      },
+      "expect": {
+        "kind": "top_group",
+        "value": "TR"
+      }
+    },
+    {
+      "id": "sludge_route_by_year-top",
+      "question": "In which year did Poland incinerate the most urban sewage sludge (thousand tonnes)?",
+      "tool": "sludge_route_by_year",
+      "args": {
+        "metric": "OBS_VALUE",
+        "agg": "mean",
+        "filters": {
+          "geo": "PL",
+          "ww_tpar": "SLD_INCN",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T"
+        }
+      },
+      "expect": {
+        "kind": "top_group",
+        "value": 2018
+      }
+    },
+    {
+      "id": "sludge_route_mix-top",
+      "question": "For Poland in 2022, which sludge category has the largest tonnage?",
+      "tool": "sludge_route_mix",
+      "args": {
+        "metric": "OBS_VALUE",
+        "agg": "mean",
+        "filters": {
+          "geo": "PL",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        }
+      },
+      "expect": {
+        "kind": "top_group",
+        "value": "SLD"
+      }
+    },
+    {
+      "id": "cite_sludge_rows-count",
+      "question": "How many Eurostat rows describe Poland's urban sludge (thousand tonnes) in 2022?",
+      "tool": "cite_sludge_rows",
+      "args": {
+        "filters": {
+          "geo": "PL",
+          "ww_tp": "URB_TP",
+          "unit": "THS_T",
+          "TIME_PERIOD": 2022
+        }
+      },
+      "expect": {
+        "kind": "matched_count",
+        "value": 7
+      }
+    },
+    {
+      "id": "treatment_coverage_by_country-top",
+      "question": "Which country had the highest share of population on tertiary treatment in 2022?",
+      "tool": "treatment_coverage_by_country",
+      "args": {
+        "metric": "OBS_VALUE",
+        "agg": "mean",
+        "filters": {
+          "ww_tp": "URB_OTH_CS_T3",
+          "unit": "PC",
+          "TIME_PERIOD": 2022
+        }
+      },
+      "expect": {
+        "kind": "top_group",
+        "value": "NL"
+      }
+    }
+  ],
+  "pinned": {
+    "at": "2026-11-05T16:25:35.574647+00:00",
+    "by": "scripts/pin_expectations.py (pyarrow + plain Python, independent of the tools)",
+    "source_sha256": {
+      "eurostat-env-ww-spd": [
+        "a4598e082bb38a8fe55795df78c482f825a9d85dc82290e1a300f58eb4b0cc27"
+      ],
+      "eurostat-env-ww-con": [
+        "958b5267e8bc471b6179ca50059e12a6202c6b42967828c5193850cffaa6b2d3"
+      ]
+    }
+  }
+}

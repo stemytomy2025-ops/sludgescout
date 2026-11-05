@@ -1,0 +1,10 @@
+{
+  "factory_run": "cambi-ai-engineer",
+  "proposal_id": "p1",
+  "build_plan_sha256": "193096d43fb41cb4ecba6c0828be72e96eb3d5b00e3f7f83a4e8fe8f12079e18",
+  "generated_at": "2026-11-05T16:21:26.074490+00:00",
+  "datasets": {
+    "eurostat-env-ww-spd": "a4598e082bb38a8fe55795df78c482f825a9d85dc82290e1a300f58eb4b0cc27",
+    "eurostat-env-ww-con": "958b5267e8bc471b6179ca50059e12a6202c6b42967828c5193850cffaa6b2d3"
+  }
+}
