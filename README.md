@@ -91,5 +91,5 @@ committed to this repository.
 ## Deployment (not performed)
 
 The app is ready for Streamlit Community Cloud: `requirements.txt` installs the package, and
-the API key goes into the app's Secrets settings. The data is downloaded on first run from the
-sidebar. Deployment has **not** been done.
+the API key goes into the app's Secrets settings. On first start the app downloads and
+validates the Eurostat data automatically; **Download / refresh data** in the sidebar refreshes it.

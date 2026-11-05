@@ -12,7 +12,7 @@ import streamlit as st
 
 from sludgescout.agent import Agent, AgentResult, describe_data, system_prompt
 from sludgescout.config import load_config
-from sludgescout.data import DataError, fetch_dataset, load_dataset, load_manifest
+from sludgescout.data import DataError, DataNotAvailable, fetch_dataset, load_dataset, load_manifest
 from sludgescout.evaluation import load_cases, run_tool_evals
 from sludgescout.extraction import LLM
 from sludgescout.tools import ToolError, ToolRegistry
@@ -230,6 +230,23 @@ st.caption(CONFIG.tagline)
 
 try:
     frames, registry = runtime(data_stamp())
+except DataNotAvailable as exc:
+    # A fresh deployment has no data/raw/: download once instead of asking the visitor to.
+    if st.session_state.get("auto_fetched"):
+        st.warning(str(exc))
+        st.stop()
+    st.session_state.auto_fetched = True
+    with st.status("First start: downloading and validating the data", expanded=True) as status:
+        try:
+            for ds in CONFIG.datasets:
+                fetch_dataset(ds, progress=status.write)
+        except DataError as fetch_exc:
+            status.update(label="Download failed", state="error")
+            st.error(str(fetch_exc))
+            st.info("Use **Download / refresh data** in the sidebar to try again.")
+            st.stop()
+    st.cache_resource.clear()
+    st.rerun()
 except DataError as exc:
     st.warning(str(exc))
     st.info("Use **Download / refresh data** in the sidebar to fetch the documented dataset.")
