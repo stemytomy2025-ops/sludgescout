@@ -3,13 +3,36 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-ROOT = Path(__file__).resolve().parents[2]
-CONFIG_PATH = ROOT / "app_config.json"
+CONFIG_NAME = "app_config.json"
+
+
+def find_root(env: dict[str, str] | None = None, cwd: Path | None = None) -> Path:
+    """The app directory: $APP_ROOT, the source checkout, or the working directory.
+
+    A non-editable install (Streamlit Community Cloud installs `.` from requirements.txt)
+    puts this file in site-packages, so its parents are not the app directory.
+    """
+    env = os.environ if env is None else env
+    checkout = Path(__file__).resolve().parents[2]
+    candidates = [Path(env["APP_ROOT"])] if env.get("APP_ROOT") else []
+    candidates += [checkout, cwd or Path.cwd()]
+    for candidate in candidates:
+        if (candidate / CONFIG_NAME).is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"{CONFIG_NAME} not found in {[str(c) for c in candidates]}; run from the app "
+        "directory or set APP_ROOT"
+    )
+
+
+ROOT = find_root()
+CONFIG_PATH = ROOT / CONFIG_NAME
 DATA_DIR = ROOT / "data" / "raw"
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 

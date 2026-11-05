@@ -2,7 +2,36 @@
 
 import pytest
 
-from sludgescout.config import AppConfig, load_config
+import sludgescout.config as config_module
+from sludgescout.config import CONFIG_NAME, AppConfig, find_root, load_config
+
+
+def _app_dir(path):
+    path.mkdir(parents=True, exist_ok=True)
+    (path / CONFIG_NAME).write_text("{}", encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def installed(tmp_path, monkeypatch):
+    """Simulate a non-editable install: the module's parents hold no app_config.json."""
+    monkeypatch.setattr(config_module, "__file__", str(tmp_path / "site" / "pkg" / "config.py"))
+
+
+def test_root_is_found_from_the_working_directory_when_installed(installed, tmp_path):
+    app = _app_dir(tmp_path / "repo")
+    assert find_root(env={}, cwd=app) == app
+
+
+def test_app_root_env_var_wins(installed, tmp_path):
+    chosen = _app_dir(tmp_path / "chosen")
+    other = _app_dir(tmp_path / "other")
+    assert find_root(env={"APP_ROOT": str(chosen)}, cwd=other) == chosen
+
+
+def test_missing_config_is_a_clear_error(installed, tmp_path):
+    with pytest.raises(FileNotFoundError, match="set APP_ROOT"):
+        find_root(env={}, cwd=tmp_path)
 
 
 def test_developer_tabs_are_shown_and_about_is_off_by_default(config):
